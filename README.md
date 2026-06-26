@@ -71,7 +71,36 @@ void OnGameClear() { state = GameState::GAME_CLEAR; }
 |-----------|------------|----------|
 | ![메인](docs/screenshots/main_menu.png) | ![클리어](docs/screenshots/game_clear.png) | ![오버](docs/screenshots/game_over.png) |
 
-### 4. 코드 통합
+### 4. 열쇠·문 상호작용 시스템 구현
+
+- 플레이어가 열쇠(`_K1~_K5`) 타일을 밟으면 `hasKey[]` 플래그를 설정하고 대응하는 문(`_D1~_D5`)을 즉시 개방
+- `OpenDoorAnimation()` — 문 타일을 행 순서대로 `_L`(길)로 교체하며 30ms 간격으로 렌더링하여 **스르륵 열리는 시각 효과** 구현
+- 순차 획득 조건(K1 먼저, 이후 K2 활성화 등) 및 스테이지별 열쇠·문 배치 동선 설계 담당
+
+```cpp
+// 열쇠 획득 → 문 개방 (MapManager::MovePlayer 내부)
+if (tile == _K1 && !hasKey[1]) {
+    hasKey[1] = true;
+    OpenDoorAnimation(_D1);   // 문 타일을 한 칸씩 지워가며 스르륵 개방
+}
+else if (tile == _K2 && hasKey[1] && !hasKey[2]) {
+    hasKey[2] = true;
+    OpenDoorAnimation(_D2);
+}
+
+// 개방 애니메이션 — 문 타일을 위→아래 순으로 길로 변환
+void MapManager::OpenDoorAnimation(int doorType) {
+    for (int r = 0; r < LH; r++)
+        for (int c = 0; c < LW; c++)
+            if (mapData[r][c] == doorType) {
+                mapData[r][c] = _L;
+                RenderMap(); sb.Flip();
+                Sleep(30);
+            }
+}
+```
+
+### 5. 코드 통합
 
 - 팀원별로 개발된 스테이지 맵·장애물 로직을 단일 프로젝트로 병합 및 충돌 해결
 - `GameSystem` · `ScreenBuffer` · `MapManager` 간 의존 관계 정리 및 빌드 환경 통합
